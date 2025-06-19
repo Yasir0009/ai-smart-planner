@@ -33,27 +33,8 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
       });
   };
 
-  const applyStrongFormatting = (line: string): (string | JSX.Element)[] => {
-    const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
-    const regex = /(\*\*(.*?)\*\*|__(.*?)__)/g;
-    let match;
-    while ((match = regex.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(line.substring(lastIndex, match.index));
-      }
-      const strongText = match[2] || match[3]; // match[2] for **text**, match[3] for __text__
-      parts.push(<strong key={`strong-${parts.length}-${match.index}`}>{strongText}</strong>);
-      lastIndex = regex.lastIndex;
-    }
-    if (lastIndex < line.length) {
-      parts.push(line.substring(lastIndex));
-    }
-    return parts;
-  };
-
   const parsePlanText = (text: string): JSX.Element[] => {
-    const lines = text.split('\\n');
+    const lines = text.split('\n'); // Use literal newline for splitting
     const elements: JSX.Element[] = [];
     let inList = false;
     let listItems: JSX.Element[] = [];
@@ -69,27 +50,30 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
     lines.forEach((line, index) => {
       const key = `line-${index}`;
 
-      if (line.startsWith('# ')) {
+      // Remove trailing \r if present (common in Windows newlines)
+      const cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
+
+      if (cleanLine.startsWith('📜 ')) {
         processList();
-        elements.push(<h1 key={key} className="font-headline text-2xl font-bold mt-6 mb-3">{applyStrongFormatting(line.substring(2))}</h1>);
-      } else if (line.startsWith('## ')) {
+        elements.push(<h1 key={key} className="font-headline text-2xl font-bold mt-6 mb-3">{cleanLine.substring(2)}</h1>);
+      } else if (cleanLine.startsWith('📅 ')) {
         processList();
-        elements.push(<h2 key={key} className="font-headline text-xl font-semibold mt-4 mb-2">{applyStrongFormatting(line.substring(3))}</h2>);
-      } else if (line.startsWith('### ')) {
+        elements.push(<h2 key={key} className="font-headline text-xl font-semibold mt-4 mb-2">{cleanLine.substring(2)}</h2>);
+      } else if (cleanLine.startsWith('☀️ ') || cleanLine.startsWith('🌤️ ') || cleanLine.startsWith('🌙 ')) {
         processList();
-        elements.push(<h3 key={key} className="font-headline text-lg font-semibold mt-3 mb-1">{applyStrongFormatting(line.substring(4))}</h3>);
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        elements.push(<h3 key={key} className="font-headline text-lg font-semibold mt-3 mb-1">{cleanLine.substring(2)}</h3>);
+      } else if (cleanLine.startsWith('- ')) {
         if (!inList) {
           inList = true;
         }
-        const listItemContent = line.substring(line.startsWith('- ') ? 2 : line.startsWith('* ') ? 2 : 0);
-        listItems.push(<li key={`${key}-li`}>{applyStrongFormatting(listItemContent)}</li>);
-      } else if (line.trim() === '') {
+        const listItemContent = cleanLine.substring(2);
+        listItems.push(<li key={`${key}-li`}>{listItemContent}</li>);
+      } else if (cleanLine.trim() === '') {
         processList();
         elements.push(<div key={key} className="h-2" />); 
       } else {
         processList();
-        elements.push(<p key={key} className="my-1">{applyStrongFormatting(line)}</p>);
+        elements.push(<p key={key} className="my-1">{cleanLine}</p>);
       }
     });
 
