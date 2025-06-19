@@ -22,7 +22,7 @@ const GeneratePlanInputSchema = z.object({
 export type GeneratePlanInput = z.infer<typeof GeneratePlanInputSchema>;
 
 const GeneratePlanOutputSchema = z.object({
-  plan: z.string().describe('The generated plan, using emojis for structure and emphasis, and Markdown lists for tasks.'),
+  plan: z.string().describe('The generated plan, using emojis for structure and emphasis, Markdown lists for tasks, and a tips section.'),
 });
 export type GeneratePlanOutput = z.infer<typeof GeneratePlanOutputSchema>;
 
@@ -41,9 +41,10 @@ VERY IMPORTANT:
   - For the main plan title (if any), start the line with 📜 followed by a space.
   - For major sections (like days of the week or main time blocks), start the line with 📅 followed by a space.
   - For sub-sections (like Morning, Afternoon, Evening), start the line with ☀️ (Morning), 🌤️ (Afternoon), or 🌙 (Evening) followed by a space.
+  - For a 'Tips for Success' section, if generated, start its title with 💡 followed by a space. List individual tips also using Markdown lists with a hyphen and a space ('- ').
 - Do NOT use Markdown bold like **text**.
 - Instead, to emphasize time or key activities, use the ⏰ emoji before the time/activity.
-- Use Markdown lists with a hyphen and a space ('- ') for individual tasks.
+- Use Markdown lists with a hyphen and a space ('- ') for individual tasks and tips.
 
 Example for a Daily plan:
 📅 Monday, October 26th
@@ -81,7 +82,8 @@ Available Time: {{{availableTime}}}
 Plan Duration: {{{planDuration}}}
 Custom Goals: {{{customGoals}}}
 
-Generate a detailed and actionable plan.`,
+Generate a detailed and actionable plan.
+After generating the core plan, include a 'Tips for Success' section. This section should start with '💡 Tips for Success' and contain 2-3 actionable tips relevant to the plan, formatted as a Markdown list.`,
 });
 
 const generatePlanFlow = ai.defineFlow(

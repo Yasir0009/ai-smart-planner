@@ -34,7 +34,7 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
   };
 
   const parsePlanText = (text: string): JSX.Element[] => {
-    const lines = text.split('\n'); // Use literal newline for splitting
+    const lines = text.split('\n');
     const elements: JSX.Element[] = [];
     let inList = false;
     let listItems: JSX.Element[] = [];
@@ -49,8 +49,6 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
 
     lines.forEach((line, index) => {
       const key = `line-${index}`;
-
-      // Remove trailing \r if present (common in Windows newlines)
       const cleanLine = line.endsWith('\r') ? line.substring(0, line.length - 1) : line;
 
       if (cleanLine.startsWith('📜 ')) {
@@ -62,12 +60,15 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
       } else if (cleanLine.startsWith('☀️ ') || cleanLine.startsWith('🌤️ ') || cleanLine.startsWith('🌙 ')) {
         processList();
         elements.push(<h3 key={key} className="font-headline text-lg font-semibold mt-3 mb-1">{cleanLine.substring(2)}</h3>);
+      } else if (cleanLine.startsWith('💡 ')) {
+        processList();
+        elements.push(<h2 key={key} className="font-headline text-xl font-semibold mt-6 mb-3">{cleanLine.substring(2)}</h2>);
       } else if (cleanLine.startsWith('- ')) {
         if (!inList) {
           inList = true;
         }
         const listItemContent = cleanLine.substring(2);
-        listItems.push(<li key={`${key}-li`}>{listItemContent}</li>);
+        listItems.push(<li key={`${key}-li`} className="border-b border-foreground/[.30] pt-1 pb-1.5">{listItemContent}</li>);
       } else if (cleanLine.trim() === '') {
         processList();
         elements.push(<div key={key} className="h-2" />); 
@@ -77,7 +78,7 @@ export function PlanDisplay({ planText }: PlanDisplayProps) {
       }
     });
 
-    processList(); // Process any remaining list items
+    processList(); 
     return elements;
   };
 
