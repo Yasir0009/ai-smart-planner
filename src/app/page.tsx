@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { generatePlan, type GeneratePlanInput } from '@/ai/flows/generate-plan';
 import { Button } from '@/components/ui/button'; // For potential future use, like a global reset
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function HomePage() {
   const [plan, setPlan] = useState<string | null>(null);
