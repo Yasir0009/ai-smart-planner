@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,7 +17,15 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { PlusCircle, Trash2, RotateCcw, Send } from 'lucide-react';
-import type { GeneratePlanInput } from '@/ai/flows/generate-plan';
+
+// This type is now defined locally, removing the dependency on the backend flow.
+export interface GeneratePlanInput {
+  planningTopic: 'Study' | 'Fitness' | 'Work' | 'Life Tasks';
+  tasks: string[];
+  availableTime: string;
+  planDuration: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  customGoals?: string;
+}
 
 const planningTopics = ["Study", "Fitness", "Work", "Life Tasks"] as const;
 const planDurations = ["Daily", "Weekly", "Monthly", "Yearly"] as const;

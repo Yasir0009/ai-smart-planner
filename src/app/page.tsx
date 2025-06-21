@@ -7,9 +7,124 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
-import { generatePlan, type GeneratePlanInput } from '@/ai/flows/generate-plan';
-import { Button } from '@/components/ui/button'; // For potential future use, like a global reset
 import { Card, CardContent } from '@/components/ui/card';
+
+// Define the input type directly, as the backend flow is removed.
+export interface GeneratePlanInput {
+  planningTopic: 'Study' | 'Fitness' | 'Work' | 'Life Tasks';
+  tasks: string[];
+  availableTime: string;
+  planDuration: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  customGoals?: string;
+}
+
+// The new generatePlan function using fetch to call Gemini API directly
+async function generatePlan(data: GeneratePlanInput): Promise<{ plan: string }> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("NEXT_PUBLIC_GEMINI_API_KEY is not set. Please add it to your .env.local file.");
+  }
+
+  // Construct the prompt manually
+  const tasksString = data.tasks.map(task => `- ${task}`).join('\n');
+  const promptText = `You are an AI planning assistant. Generate a plan based on the following information.
+VERY IMPORTANT:
+- Do NOT use Markdown headings like #, ##, ###.
+- Instead, use emojis to denote structure:
+  - For the main plan title (if any), start the line with 📜 followed by a space.
+  - For major sections (like days of the week or main time blocks), start the line with 📅 followed by a space.
+  - For sub-sections (like Morning, Afternoon, Evening), start the line with ☀️ (Morning), 🌤️ (Afternoon), or 🌙 (Evening) followed by a space.
+  - For a 'Tips for Success' section, if generated, start its title with 💡 followed by a space. List individual tips also using Markdown lists with a hyphen and a space ('- ').
+- Do NOT use Markdown bold like **text**.
+- Instead, to emphasize time or key activities, use the ⏰ emoji before the time/activity.
+- Use Markdown lists with a hyphen and a space ('- ') for individual tasks and tips.
+
+Example for a Daily plan:
+📅 Monday, October 26th
+☀️ Morning
+- ⏰ 08:00 - 09:00: Breakfast and prepare for the day
+- ⏰ 09:00 - 10:00: Deep work session 1
+🌤️ Afternoon
+- ⏰ 13:00 - 14:00: Lunch break
+- ⏰ 14:00 - 15:00: Meetings
+🌙 Evening
+- ⏰ 19:00 - 20:00: Dinner
+- ⏰ 20:00 - 21:00: Relax and unwind
+
+Ensure the output is clean and well-structured, following these emoji and list guidelines.
+
+Planning Topic: ${data.planningTopic}
+Tasks:
+${tasksString}
+Available Time: ${data.availableTime}
+Plan Duration: ${data.planDuration}
+Custom Goals: ${data.customGoals || 'None'}
+
+Generate a detailed and actionable plan.
+After generating the core plan, include a 'Tips for Success' section. This section should start with '💡 Tips for Success' and contain 2-3 actionable tips relevant to the plan, formatted as a Markdown list.`;
+
+  const requestBody = {
+    contents: [{
+      parts: [{
+        text: promptText
+      }]
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 1,
+      topP: 1,
+      maxOutputTokens: 2048,
+    },
+     safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_LOW_AND_ABOVE',
+      },
+    ],
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.json();
+    console.error("Gemini API Error:", errorBody);
+    throw new Error(`API request failed with status ${response.status}: ${errorBody.error?.message || 'Unknown error'}`);
+  }
+
+  const responseData = await response.json();
+  
+  // Check for safety ratings and blocked content
+  if (responseData.promptFeedback?.blockReason) {
+    throw new Error(`Request was blocked: ${responseData.promptFeedback.blockReason}`);
+  }
+  
+  if (!responseData.candidates || responseData.candidates.length === 0) {
+    throw new Error("No plan was generated. The response may have been blocked for safety reasons.");
+  }
+  
+  const planText = responseData.candidates[0].content.parts[0].text;
+  return { plan: planText };
+}
 
 export default function HomePage() {
   const [plan, setPlan] = useState<string | null>(null);
@@ -29,12 +144,6 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFormReset = () => {
-    setPlan(null);
-    setError(null);
-    // The form itself handles resetting its fields via the PlanForm's reset function
   };
 
   return (
@@ -88,7 +197,7 @@ export default function HomePage() {
       </main>
       <footer className="w-full max-w-3xl mt-12 py-6 text-center text-muted-foreground text-sm">
         <p>&copy; {new Date().getFullYear()} PlanWise AI. All rights reserved.</p>
-        <p className="mt-1">Powered by GenAI and Next.js</p>
+        <p className="mt-1">Powered by the Gemini API and Next.js</p>
       </footer>
     </div>
   );
